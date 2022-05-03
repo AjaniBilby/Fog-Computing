@@ -1,17 +1,10 @@
 from shared import *
 
 
-def Simulate(nodes, scheduler):
+def Simulate(nodes, scheduler, tasks):
 	# TODO
-	# Move the creation of tasks to a generator parsed as an argument
 	# Start off with a large set of tasks at the beginning
 	# Then add a new task to the queue every X tick
-	tasks = [
-		Task(cpus=4, instructions=100),
-		Task(cpus=2, instructions=100),
-		Task(cpus=2, instructions=200)
-	]
-
 	queue = [x for x in tasks]
 
 	while True:
@@ -36,8 +29,6 @@ def Simulate(nodes, scheduler):
 		for t in queue:
 			t.wait()
 
-	return tasks
-
 
 
 def FIFO_Schedule(freeNodes, queue):
@@ -52,12 +43,20 @@ def FIFO_Schedule(freeNodes, queue):
 
 
 
-tasks = Simulate(
+# TODO
+# Move the creation of tasks to a generator parsed as an argument
+tasks = [
+	Task(0, cpus=4, instructions=100),
+	Task(1, cpus=2, instructions=100),
+	Task(2, cpus=2, instructions=200)
+]
+
+Simulate(
 	nodes = [
 		Node(cpus=2, ipt=10, cost=3.0),
 		Node(cpus=4, ipt=10, cost=2.0)
 	],
-	scheduler=FIFO_Schedule
+	scheduler=FIFO_Schedule,
 )
 
 totalLatency      = sum([t.latency for t in tasks])
