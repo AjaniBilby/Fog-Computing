@@ -4,6 +4,7 @@ class Task:
 		self.instrs = instructions
 		self.progress = 0
 
+		self.pID = 0
 		self.latency = 0
 		self.processTime = 0
 		self.cost = 0
@@ -23,7 +24,8 @@ class Task:
 
 
 class Node:
-	def __init__(self, ipt, cpus, cost):
+	def __init__(self, id, ipt, cpus, cost):
+		self.id = id
 		self.ipt = ipt
 		self.cpus = cpus
 		self.cost = cost
@@ -42,6 +44,7 @@ class Node:
 
 		self.processing = task.instrs
 		self.operation = task
+		task.pID = self.id
 
 	def tick(self):
 		if self.isProcessing():
