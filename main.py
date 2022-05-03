@@ -2,6 +2,10 @@ from shared import *
 
 
 def Simulate(nodes, scheduler):
+	# TODO
+	# Move the creation of tasks to a generator parsed as an argument
+	# Start off with a large set of tasks at the beginning
+	# Then add a new task to the queue every X tick
 	tasks = [
 		Task(cpus=4, instructions=100),
 		Task(cpus=2, instructions=100),
