@@ -53,6 +53,9 @@ class Node:
 			if done:
 				self.operation = None
 
+
+
+
 def Simulate(nodes, scheduler, tasks):
 	# TODO
 	# Start off with a large set of tasks at the beginning
