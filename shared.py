@@ -52,3 +52,31 @@ class Node:
 
 			if done:
 				self.operation = None
+
+def Simulate(nodes, scheduler, tasks):
+	# TODO
+	# Start off with a large set of tasks at the beginning
+	# Then add a new task to the queue every X tick
+	queue = [x for x in tasks]
+
+	while True:
+		# Determine which nodes are currently not procesing a Task
+		freeNodes = []
+		for n in nodes:
+			if not n.isProcessing():
+				freeNodes.append(n)
+
+		# If all nodes are available, and there are no tasks in the queue
+		# Then all tasks have been completed
+		if len(freeNodes) == len(nodes) and len(queue) == 0:
+			break
+
+		scheduler(freeNodes, queue)
+
+		# Step forward the simulation
+		for n in nodes:
+			n.tick()
+
+		# Add latency to the still awaiting tasks
+		for t in queue:
+			t.wait()
