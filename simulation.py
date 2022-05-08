@@ -1,3 +1,30 @@
+# Random number generator where state can be easily maintained for task generation
+def LCG(seed, a=1664525, c=1013904223, m=2**32):
+	return (a*seed + c) % m
+
+
+class TaskGenerator:
+	def __init__(self, cpus = [1, 8], instructions = [100, 10000]):
+		self.cpus = cpus
+		self.instrs = instructions
+		self.state = 0
+		self.count = 0
+
+	def generate(self):
+		self.state = LCG(self.state)
+		c = ( self.state % (self.cpus[1] - self.cpus[0]) ) + self.cpus[0]
+		self.state = LCG(self.state)
+		i = ( self.state % (self.instrs[1] - self.instrs[0]) ) + self.instrs[0]
+		id = self.count
+		self.count = id + 1
+
+		return Task(c, i)
+
+	def reset(self):
+		self.state = 0
+
+
+
 class Task:
 	def __init__(self, cpus, instructions):
 		self.cpus = cpus
@@ -20,7 +47,13 @@ class Task:
 		self.progress = self.progress + ipt
 		self.cost = self.cost + cost
 
-		return self.progress > self.instrs
+		return self.progress >= self.instrs
+
+	def __repr__(self):
+		return "Task({}, {})".format(self.cpus, self.instrs)
+
+	def __str__(self):
+		return "Task({}, {}, {}%)".format(self.cpus, self.instrs, int(self.progress/self.instrs*100))
 
 
 class Node:
@@ -53,21 +86,38 @@ class Node:
 			if done:
 				self.operation = None
 
+	def __repr__(self):
+		if self.isProcessing():
+			return "{}:\n  {}".format(self, self.operation)
+		else:
+			return str(self)
+
+	def __str__(self):
+		return "Node({}, {}, {})".format(self.id, self.cpus, self.ipt)
 
 
 
-def Simulate(nodes, scheduler, tasks):
-	# TODO
-	# Start off with a large set of tasks at the beginning
-	# Then add a new task to the queue every X tick
-	queue = [x for x in tasks]
+
+def Simulate(nodes, scheduler, task_generator):
+	max_concurrent_tasks = 8
+	max_tasks = 100
+	tasks = []
+	queue = []
 
 	while True:
+		while max_tasks > len(tasks) and len(queue) < max_concurrent_tasks:
+			t = task_generator.generate()
+			tasks.append(t)
+			queue.append(t)
+
 		# Determine which nodes are currently not procesing a Task
 		freeNodes = []
 		for n in nodes:
 			if not n.isProcessing():
 				freeNodes.append(n)
+
+		if len(queue) == max_concurrent_tasks:
+			print("Warn: No nodes can process available tasks")
 
 		# If all nodes are available, and there are no tasks in the queue
 		# Then all tasks have been completed
@@ -83,3 +133,5 @@ def Simulate(nodes, scheduler, tasks):
 		# Add latency to the still awaiting tasks
 		for t in queue:
 			t.wait()
+
+	return tasks
