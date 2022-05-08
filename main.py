@@ -17,6 +17,8 @@ def FIFO_Schedule(freeNodes, queue):
 
 def Handcraft_Scheduler(freeNodes, queue):
 	queue.sort(key=lambda x: (x.cpus, x.latency), reverse=True)
+	# FIFO by priotieses scheduling higher CPU tasks first
+	# Hence a higher CPU node won't get scheduled a lower CPU task when a higher CPU task is available
 
 	for (qID, t) in enumerate(queue):
 		for (nID, n) in enumerate(freeNodes):
@@ -29,7 +31,18 @@ def Handcraft_Scheduler(freeNodes, queue):
 	return
 
 def Genetic_Scheduler(freeNodes, queue):
+	# Estimate the cost of a given configuration
+	# config: list mapping [ nodes → queue tasks ]
+	def Configuration_Cost(config):
+		cost = 0
+		for (nID, n) in enumerate(freeNodes):
+			cost = cost + n.estimate_cost(queue[config[nID]])
+
+		return cost
+
+
 	# TODO implement
+
 	return
 
 

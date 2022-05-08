@@ -5,11 +5,11 @@ def LCG(seed, a=1664525, c=1013904223, m=2**32):
 
 class TaskGenerator:
 	def __init__(self, cpus = [1, 8], instructions = [100, 10000], max = 1000):
-		self.cpus   = cpus
-		self.instrs = instructions
-		self.max    = max
-		self.state  = 0
-		self.count  = 0
+		self.cpus   = cpus         # range of possible task CPU values
+		self.instrs = instructions # range of possible instruction values
+		self.max    = max          # how many tasks should be generated before stopping
+		self.state  = 0            # the current state of the RNG
+		self.count  = 0            # what the next task ID will be
 
 	def generate(self):
 		if self.count >= self.max:
@@ -32,14 +32,14 @@ class TaskGenerator:
 
 class Task:
 	def __init__(self, cpus, instructions):
-		self.cpus = cpus
-		self.instrs = instructions
-		self.progress = 0
+		self.cpus = cpus           # How many CPUs needed for this task
+		self.instrs = instructions # How many instructions in this task
+		self.progress = 0          # How many instructions have been ran on this task
 
-		self.pID = 0
-		self.latency = 0
-		self.processTime = 0
-		self.cost = 0
+		self.pID = 0               # Which node is processing this task
+		self.latency = 0           # How many ticks was this task sitting in the queue for
+		self.processTime = 0       # How many ticks did it take to process this task?
+		self.cost = 0              # Current running cost of the task
 
 	def meets(self, node):
 		return node.cpus >= self.cpus
@@ -63,13 +63,13 @@ class Task:
 
 class Node:
 	def __init__(self, id, ipt, cpus, cost):
-		self.id = id
-		self.ipt = ipt
-		self.cpus = cpus
-		self.cost = cost
+		self.id = id     # Node's ID number (used for branding tasks)
+		self.ipt = ipt   # How many instructions it processes per tick
+		self.cpus = cpus # Number of cpus this node has
+		self.cost = cost # Cost of operation per tick
 
-		self.operation = None
-		self.idle = 0
+		self.operation = None # Currently assigned task
+		self.idle      = 0    # Total time spend idling (no assigned task)
 
 	def costOfExecution(self, task):
 		return task.instrs/self.ipt * self.cost
@@ -94,6 +94,7 @@ class Node:
 		else:
 			self.idle = self.idle + 1
 
+	# Estimates the cost of running a given task on this node
 	def estimate_cost(self, task):
 		return task.instr/self.ipt * self.cost
 
