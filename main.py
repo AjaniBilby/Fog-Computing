@@ -63,9 +63,9 @@ def PrettyStatsPrint(stats):
 
 
 gen = TaskGenerator(
-	        cpus = [1, 8],
-	instructions = [50, 500],
-	max          = 500
+	        cpus = [1, 8],    # [min, max]
+	instructions = [50, 500], # [min, max]
+	max          = 500        # how many tasks to be generated before simulation stops
 )
 nodes = [
 	Node(0, cpus=2, ipt=150, cost=3.0),
