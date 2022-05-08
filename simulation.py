@@ -4,13 +4,17 @@ def LCG(seed, a=1664525, c=1013904223, m=2**32):
 
 
 class TaskGenerator:
-	def __init__(self, cpus = [1, 8], instructions = [100, 10000]):
-		self.cpus = cpus
+	def __init__(self, cpus = [1, 8], instructions = [100, 10000], max = 1000):
+		self.cpus   = cpus
 		self.instrs = instructions
-		self.state = 0
-		self.count = 0
+		self.max    = max
+		self.state  = 0
+		self.count  = 0
 
 	def generate(self):
+		if self.count >= self.max:
+			return None
+
 		self.state = LCG(self.state)
 		c = ( self.state % (self.cpus[1] - self.cpus[0]) ) + self.cpus[0]
 		self.state = LCG(self.state)
@@ -22,6 +26,7 @@ class TaskGenerator:
 
 	def reset(self):
 		self.state = 0
+		self.count = 0
 
 
 
@@ -49,20 +54,6 @@ class Task:
 
 		return self.progress >= self.instrs
 
-
-	def __lt__(self, other):
-		if self.cpus < other.cpus:
-			return True
-		elif self.latency < other.latency:
-			return True
-		elif self.instrs < other.instrs:
-			return True
-		else:
-			return False
-
-	def __eq__(self, other):
-		return self.cpus == other.cpus and self.latency == other.latency and self.instrs == other.instrs
-
 	def __repr__(self):
 		return "Task({}, {})".format(self.cpus, self.instrs)
 
@@ -78,6 +69,7 @@ class Node:
 		self.cost = cost
 
 		self.operation = None
+		self.idle = 0
 
 	def costOfExecution(self, task):
 		return task.instrs/self.ipt * self.cost
@@ -99,6 +91,15 @@ class Node:
 
 			if done:
 				self.operation = None
+		else:
+			self.idle = self.idle + 1
+
+	def estimate_cost(self, task):
+		return task.instr/self.ipt * self.cost
+
+	def reset(self):
+		self.operation = None
+		self.idle = 0
 
 	def __repr__(self):
 		if self.isProcessing():
@@ -112,15 +113,33 @@ class Node:
 
 
 
-def Simulate(nodes, scheduler, task_generator):
-	max_concurrent_tasks = 8
-	max_tasks = 100
+def Simulate(nodes, scheduler, task_generator, max_concurrent_tasks=8, experiment_name="default"):
 	tasks = []
 	queue = []
+	ticks = 0
+
+	# Reset the internal states
+	task_generator.reset()
+	for n in nodes:
+		n.reset()
+
+	max_cpus = max([n.cpus for n in nodes])
+
+	# TODO
+	# Init the CSV headers
+	# csv.open("{}.csv".format(experiment_name))
+	# for c in range(1, max_cpus):
+	# 	csv.write("Q{},".format(c))
+	# for n in range(1, len(nodes)):
+	# 	csv.write("N{},".format(n))
+	# csv.new_line()
 
 	while True:
-		while max_tasks > len(tasks) and len(queue) < max_concurrent_tasks:
+		while len(queue) < max_concurrent_tasks:
 			t = task_generator.generate()
+			if t is None:
+				break
+
 			tasks.append(t)
 			queue.append(t)
 
@@ -130,15 +149,16 @@ def Simulate(nodes, scheduler, task_generator):
 			if not n.isProcessing():
 				freeNodes.append(n)
 
-		if len(queue) == max_concurrent_tasks:
-			print("Warn: No nodes can process available tasks")
-
 		# If all nodes are available, and there are no tasks in the queue
 		# Then all tasks have been completed
 		if len(freeNodes) == len(nodes) and len(queue) == 0:
 			break
 
 		scheduler(freeNodes, queue)
+
+		if len(queue) == max_concurrent_tasks and len(freeNodes) == len(nodes):
+			print("Scheduled tasks that no node on this network can compute")
+			exit(1)
 
 		# Step forward the simulation
 		for n in nodes:
@@ -148,4 +168,47 @@ def Simulate(nodes, scheduler, task_generator):
 		for t in queue:
 			t.wait()
 
-	return tasks
+
+		# TODO
+		# Write row to CSV
+		# num tasks in queue per CPU division
+		# Y/N for each node's processing status
+		# i.e
+		# C1, C4, C8, N1, N2, N3
+		#  3,  5,  1, Y,  N,  Y
+		#
+		# tally = []
+		# for i in range(0, max_cpus-1):
+		# 	tally[i] = 0
+		# for q in queue:
+		# 	tally[q.cpus-1] = tally[q.cpus-1] + 1
+		#
+		# for t in tally:
+		# 	csv.write("{},".format(t))
+		# for n in nodes:
+		# 	csv.write("{},".format(n.isProcessing()))
+		# csv.new_line()
+
+		ticks = ticks + 1
+
+	stats = {
+		'total': {
+			'latency': sum([t.latency for t in tasks]),
+			'processTime': sum([t.processTime for t in tasks]),
+			'cost': sum([t.cost for t in tasks]),
+			'idle': sum([n.idle for n in nodes]),
+			'tick': ticks
+		},
+		'avg': {}
+	}
+
+	stats['avg']['latency'] = stats['total']['latency'] / len(tasks)
+	stats['avg']['processTime'] = stats['total']['processTime'] / len(tasks)
+	stats['avg']['cost'] = stats['total']['cost'] / len(tasks)
+	stats['avg']['idle'] = stats['total']['idle'] / len(nodes)
+
+	# TODO
+	# Close the CSV file
+	# csv.close()
+
+	return (tasks, stats)
