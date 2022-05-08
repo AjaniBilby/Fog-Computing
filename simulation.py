@@ -49,11 +49,25 @@ class Task:
 
 		return self.progress >= self.instrs
 
+
+	def __lt__(self, other):
+		if self.cpus < other.cpus:
+			return True
+		elif self.latency < other.latency:
+			return True
+		elif self.instrs < other.instrs:
+			return True
+		else:
+			return False
+
+	def __eq__(self, other):
+		return self.cpus == other.cpus and self.latency == other.latency and self.instrs == other.instrs
+
 	def __repr__(self):
 		return "Task({}, {})".format(self.cpus, self.instrs)
 
 	def __str__(self):
-		return "Task({}, {}, {}%)".format(self.cpus, self.instrs, int(self.progress/self.instrs*100))
+		return "Task(cpus: {}, latency: {}ms, instr: {}, {}%)".format(self.cpus, self.latency, self.instrs, int(self.progress/self.instrs*100))
 
 
 class Node:
