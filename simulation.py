@@ -71,9 +71,6 @@ class Node:
 		self.operation = None # Currently assigned task
 		self.idle      = 0    # Total time spend idling (no assigned task)
 
-	def costOfExecution(self, task):
-		return task.instrs/self.ipt * self.cost
-
 	def isProcessing(self):
 		return self.operation != None
 
