@@ -111,7 +111,7 @@ class Node:
  	processingCost = CPU Usage cost per time unit * executionTime
 	memoryUsageCost = Node memory usage cost * memory required for task
 	bandwidthUsageCost = Node bandwidth usage cost * bandwidth needed by the task
-	
+
 	(Nguyen, B.M. et.al,2019)
 	"""
 	def estimateCost(self, task):
@@ -121,15 +121,6 @@ class Node:
 		estimatedCost = processingCost + memoryUsageCost + bandwidthUsageCost
 
 		return estimatedCost
-
-
-	"""
-	Define execution time as the length of instructions in a task divided by
-	CPU rate of this node
-	(Nguyen, B.M. et.al,2019)
-	"""
-	def executionTime(self,task):
-		return task.instrs/self.ipt
 
 	def reset(self):
 		self.operation = None
