@@ -43,7 +43,7 @@ class Task:
 		self.bandwidth = bandwidth # The amount of bandwidth needed to process this task (usage: to calculate cost)
 		self.memory = memory       # The size of this task's memory (usage: calculate cost)
 
-		self.pID = 0               # Which node is processing this task
+		self.pID = None            # Which node is processing this task
 		self.latency = 0           # How many ticks was this task sitting in the queue for
 		self.processTime = 0       # How many ticks did it take to process this task?
 		self.cost = 0              # Current running cost of the task
@@ -81,9 +81,6 @@ class Node:
 
 		self.operation = None # Currently assigned task
 		self.idle      = 0    # Total time spend idling (no assigned task)
-
-	def costOfExecution(self, task):
-		return task.instrs/self.ipt * self.cost
 
 	def isProcessing(self):
 		return self.operation != None
@@ -189,6 +186,9 @@ def Simulate(nodes, scheduler, task_generator, max_concurrent_tasks=8, experimen
 
 		scheduler(freeNodes, queue)
 
+		# Remove assigned tasks
+		queue = [t for t in queue if t.pID is None]
+
 		if len(queue) == max_concurrent_tasks and len(freeNodes) == len(nodes):
 			print("Scheduled tasks that no node on this network can compute")
 			exit(1)
@@ -239,9 +239,25 @@ def Simulate(nodes, scheduler, task_generator, max_concurrent_tasks=8, experimen
 	stats['avg']['processTime'] = stats['total']['processTime'] / len(tasks)
 	stats['avg']['cost'] = stats['total']['cost'] / len(tasks)
 	stats['avg']['idle'] = stats['total']['idle'] / len(nodes)
+	stats['avg']['tick'] = stats['total']['tick'] / len(tasks)
 
 	# TODO
 	# Close the CSV file
 	# csv.close()
 
 	return (tasks, stats)
+
+
+def PrettyStatsPrint(stats):
+	print("Total")
+	print("  Latency : {}µs".format(stats['total']['latency']))
+	print("  Comput  : {}µs".format(stats['total']['processTime']))
+	print("  Cost    : {}".format(stats['total']['cost']))
+	print("  Time    : {}µs".format(stats['total']['tick']))
+	print("  Idle    : {}µs".format(stats['total']['idle']))
+
+	print("Avg")
+	print("  Latency : {} µs/task".format(stats['avg']['latency']))
+	print("  Comput  : {} µs/task".format(stats['avg']['processTime']))
+	print("  Cost    : {} cost/task".format(stats['avg']['cost']))
+	print("  Idle    : {} µs/node".format(stats['avg']['idle']))
