@@ -4,9 +4,11 @@ def LCG(seed, a=1664525, c=1013904223, m=2**32):
 
 
 class TaskGenerator:
-	def __init__(self, cpus = [1, 8], instructions = [100, 10000], max = 1000):
+	def __init__(self, cpus = [1, 8], instructions = [100, 10000], bandwidth = [1, 2], memory=[1000,2000] ,max = 1000):
 		self.cpus   = cpus         # range of possible task CPU values
 		self.instrs = instructions # range of possible instruction values
+		self.band   = bandwidth
+		self.mem 	= memory
 		self.max    = max          # how many tasks should be generated before stopping
 		self.state  = 0            # the current state of the RNG
 		self.count  = 0            # what the next task ID will be
@@ -19,38 +21,44 @@ class TaskGenerator:
 		c = ( self.state % (self.cpus[1] - self.cpus[0]) ) + self.cpus[0]
 		self.state = LCG(self.state)
 		i = ( self.state % (self.instrs[1] - self.instrs[0]) ) + self.instrs[0]
+		self.state = LCG(self.state)
+		b = (self.state % (self.band[1] - self.band[0])) + self.band[0]
+		self.state = LCG(self.state)
+		m = (self.state % (self.mem[1] - self.mem[0])) + self.mem[0]
 		id = self.count
 		self.count = id + 1
 
-		return Task(c, i)
+		return Task(c, i, b,m)
 
 	def reset(self):
 		self.state = 0
 		self.count = 0
 
 
-
 class Task:
-	def __init__(self, cpus, instructions):
+	def __init__(self, cpus, instructions, bandwidth, memory):
 		self.cpus = cpus           # How many CPUs needed for this task
 		self.instrs = instructions # How many instructions in this task
 		self.progress = 0          # How many instructions have been ran on this task
+		self.bandwidth = bandwidth # The amount of bandwidth needed to process this task (usage: to calculate cost)
+		self.memory = memory       # The size of this task's memory (usage: calculate cost)
 
 		self.pID = None            # Which node is processing this task
 		self.latency = 0           # How many ticks was this task sitting in the queue for
 		self.processTime = 0       # How many ticks did it take to process this task?
 		self.cost = 0              # Current running cost of the task
 
+
+	# Check if the fog node meets the requirement for this task
 	def meets(self, node):
-		return node.cpus >= self.cpus
+		return node.cpus >= self.cpus and node.memoryCapacity >= self.memory
 
 	def wait(self):
 		self.latency = self.latency + 1
 
-	def tick(self, ipt, cost):
+	def tick(self, ipt):
 		self.processTime = self.processTime + 1
 		self.progress = self.progress + ipt
-		self.cost = self.cost + cost
 
 		return self.progress >= self.instrs
 
@@ -62,11 +70,14 @@ class Task:
 
 
 class Node:
-	def __init__(self, id, ipt, cpus, cost):
-		self.id = id     # Node's ID number (used for branding tasks)
-		self.ipt = ipt   # How many instructions it processes per tick
-		self.cpus = cpus # Number of cpus this node has
-		self.cost = cost # Cost of operation per tick
+	def __init__(self, id, ipt, cpus, memoryCapacity, memoryUsageCost, bwCost, cpuUsageCost):
+		self.id = id     						# Node's ID number (used for branding tasks)
+		self.ipt = ipt   						# How many instructions it processes per tick (CPU rate)
+		self.cpus = cpus 						# Number of cpus this node has
+		self.cpuUsageCost = cpuUsageCost		# The CPU Usage cost of this nodes
+		self.memoryCapacity = memoryCapacity
+		self.memoryUsageCost = memoryUsageCost  # The memory usage cost for this node
+		self.bwCost = bwCost				    # The bandwidth usage cost for this node
 
 		self.operation = None # Currently assigned task
 		self.idle      = 0    # Total time spend idling (no assigned task)
@@ -83,20 +94,33 @@ class Node:
 
 		self.processing = task.instrs
 		self.operation = task
+		task.cost = self.estimateCost(task)
 		task.pID = self.id
 
 	def tick(self):
 		if self.isProcessing():
-			done = self.operation.tick(self.ipt, self.cost)
+			done = self.operation.tick(self.ipt)
 
 			if done:
 				self.operation = None
 		else:
 			self.idle = self.idle + 1
 
-	# Estimates the cost of running a given task on this node
-	def estimate_cost(self, task):
-		return task.instrs/self.ipt * self.cost
+	"""
+	Estimates the cost of running a given task on this node
+ 	processingCost = CPU Usage cost per time unit * executionTime
+	memoryUsageCost = Node memory usage cost * memory required for task
+	bandwidthUsageCost = Node bandwidth usage cost * bandwidth needed by the task
+
+	(Nguyen, B.M. et.al,2019)
+	"""
+	def estimateCost(self, task):
+		processingCost = self.cpuUsageCost * (task.instrs/self.ipt) 	# calculate processing cost C_p
+		memoryUsageCost = self.memoryUsageCost * task.memory 			# calculate memory usage cost C_m
+		bandwidthUsageCost = self.bwCost * task.bandwidth				# calculate bandwidth usage cost C_b
+		estimatedCost = processingCost + memoryUsageCost + bandwidthUsageCost
+
+		return estimatedCost
 
 	def reset(self):
 		self.operation = None
@@ -113,9 +137,8 @@ class Node:
 
 
 
-
 def Simulate(nodes, scheduler, task_generator, max_concurrent_tasks=8, experiment_name="default"):
-	tasks = []
+	tasks = []		# Initialize a list of tasks
 	queue = []
 	ticks = 0
 
