@@ -89,6 +89,9 @@ class Node:
 		if self.isProcessing():
 			raise Exception("Node Already processing")
 
+		if not task.meets(self):
+			raise Exception("Attempted to assign task {} to node {}".format(task, self))
+
 		self.processing = task.instrs
 		self.operation = task
 		task.cost = self.estimateCost(task)
@@ -139,7 +142,7 @@ class Node:
 			return str(self)
 
 	def __str__(self):
-		return "Node({}, {}, {})".format(self.id, self.cpus, self.ipt)
+		return "Node({}, {})".format(self.cpus, self.ipt)
 
 
 
@@ -191,6 +194,10 @@ def Simulate(nodes, scheduler, task_generator, max_concurrent_tasks=8, experimen
 
 		if len(queue) == max_concurrent_tasks and len(freeNodes) == len(nodes):
 			print("Scheduled tasks that no node on this network can compute")
+			print("Nodes:")
+			print(nodes)
+			print("Queue")
+			print(queue)
 			exit(1)
 
 		# Step forward the simulation
