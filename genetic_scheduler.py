@@ -1,8 +1,9 @@
+import enum
 import random
 
 MUTATION_RATE = 0.1
-BATCH_SIZE = 50
-GENERATIONS = 10
+BATCH_SIZE = 100
+GENERATIONS = 20
 
 def Genetic_Scheduler(freeNodes, queue):
 	# Estimate the cost of a given configuration
@@ -10,29 +11,41 @@ def Genetic_Scheduler(freeNodes, queue):
 	best = []
 	bestCost = None
 
-
+	# Start off with an inital valid genom
+	# Otherwise the algorithm was sometimes getting stuck within an invalid starting point
 	def init():
-		opts = [t for t in queue]
-		# Ensure the queue is at least nodes long
-		for _ in range(len(freeNodes)-len(queue)):
-			opts.append(None)
+		offset = 0
+		for n in freeNodes:
+			if offset >= len(queue):
+				best.append(None)
+			elif queue[offset].meets(n):
+				best.append(offset)
+				offset = offset + 1
+			else:
+				best.append(None)
+	init()
 
-		for _ in freeNodes:
-			best.append(opts.pop(random.randint(0, len(opts)-1)))
+	# Check the geno isn't trying to assign tasks to nodes that can't handle it
+	def isValidAssignments(geno):
+		for (nID, qID) in enumerate(geno):
+			if qID is not None:
+				if not queue[qID].meets(freeNodes[nID]):
+					return False
+
+		return True
 
 	def Mutate(parent):
 		opts = [i for i in range(0, len(queue))]
 
 		child = []
-		for val in best:
+		for val in parent:
 			if len(opts) == 0:
 				break
 
-			if random.random() > MUTATION_RATE:
+			if val is None or random.random() > MUTATION_RATE:
 				child.append(None) # randomness will be fulfilled one inherited traits are assigned
 			else:
-				# print(val, opts)
-				child.append(opts.pop(parent.index(val)))
+				child.append(opts.pop(opts.index(val)))
 
 		# There maybe more nodes available then tasks near the end of the simulation
 		for (i, val) in enumerate(child):
@@ -41,7 +54,7 @@ def Genetic_Scheduler(freeNodes, queue):
 
 			if val is None:
 				child[i] = opts.pop(random.randint(0, len(opts)-1))
-
+		
 		return child
 
 	for b in range(GENERATIONS):
@@ -50,6 +63,9 @@ def Genetic_Scheduler(freeNodes, queue):
 			batch.append(Mutate(best))
 
 		for child in batch:
+			if not isValidAssignments(child):
+				continue
+
 			cost = 0
 			for (nID, qID) in enumerate(child):
 				if qID is None:
@@ -63,7 +79,10 @@ def Genetic_Scheduler(freeNodes, queue):
 
 
 	# Assigned the tasks to the nodes
+	# print("Final {}".format(best))
 	for (nID, qID) in enumerate(best):
+		if qID is None:
+			continue
 		freeNodes[nID].assign( queue[qID] )
 
 	return
