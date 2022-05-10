@@ -54,7 +54,7 @@ def Genetic_Scheduler(freeNodes, queue):
 
 			if val is None:
 				child[i] = opts.pop(random.randint(0, len(opts)-1))
-		
+
 		return child
 
 	for b in range(GENERATIONS):
@@ -71,7 +71,7 @@ def Genetic_Scheduler(freeNodes, queue):
 				if qID is None:
 					continue
 				else:
-					cost = cost + freeNodes[nID].estimate_cost(queue[qID])
+					cost = cost + freeNodes[nID].estimateCost(queue[qID])
 
 			if bestCost is None or cost < bestCost:
 				bestCost = cost
