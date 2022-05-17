@@ -4,7 +4,7 @@ def LCG(seed, a=1664525, c=1013904223, m=2**32):
 
 
 class TaskGenerator:
-	def __init__(self, cpus = [1, 8], instructions = [100, 10000], bandwidth = [1, 2], memory=[1000,2000] ,max = 1000):
+	def __init__(self, cpus = [1, 8], instructions = [100, 10000], bandwidth = [1, 2], memory=[1,4] ,max = 1000):
 		self.cpus   = cpus         # range of possible task CPU values
 		self.instrs = instructions # range of possible instruction values
 		self.band   = bandwidth
@@ -88,6 +88,9 @@ class Node:
 	def assign(self, task):
 		if self.isProcessing():
 			raise Exception("Node Already processing")
+		
+		if task.pID is not None:
+			raise Exception("Assigning a task which is already assigned")
 
 		if not task.meets(self):
 			raise Exception("Attempted to assign task {} to node {}".format(task, self))
@@ -111,7 +114,7 @@ class Node:
  	processingCost = CPU Usage cost per time unit * executionTime
 	memoryUsageCost = Node memory usage cost * memory required for task
 	bandwidthUsageCost = Node bandwidth usage cost * bandwidth needed by the task
-
+	
 	(Nguyen, B.M. et.al,2019)
 	"""
 	def estimateCost(self, task):
@@ -121,6 +124,15 @@ class Node:
 		estimatedCost = processingCost + memoryUsageCost + bandwidthUsageCost
 
 		return estimatedCost
+
+
+	"""
+	Define execution time as the length of instructions in a task divided by
+	CPU rate of this node
+	(Nguyen, B.M. et.al,2019)
+	"""
+	def executionTime(self,task):
+		return task.instrs/self.ipt
 
 	def reset(self):
 		self.operation = None
