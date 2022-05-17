@@ -28,7 +28,7 @@ class TaskGenerator:
 		id = self.count
 		self.count = id + 1
 
-		return Task(c, i, b,m)
+		return Task(id, c, i, b,m)
 
 	def reset(self):
 		self.state = 0
@@ -36,7 +36,8 @@ class TaskGenerator:
 
 
 class Task:
-	def __init__(self, cpus, instructions, bandwidth, memory):
+	def __init__(self, id, cpus, instructions, bandwidth, memory):
+		self.id = id
 		self.cpus = cpus           # How many CPUs needed for this task
 		self.instrs = instructions # How many instructions in this task
 		self.progress = 0          # How many instructions have been ran on this task
@@ -87,10 +88,10 @@ class Node:
 
 	def assign(self, task):
 		if self.isProcessing():
-			raise Exception("Node Already processing")
+			raise Exception("Node Already processing {}".format(self.id))
 		
 		if task.pID is not None:
-			raise Exception("Assigning a task which is already assigned")
+			raise Exception("Assigning a task which is already assigned T{} {} -> {}".format(task.id, task.pID, self.id))
 
 		if not task.meets(self):
 			raise Exception("Attempted to assign task {} to node {}".format(task, self))
