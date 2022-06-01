@@ -89,7 +89,7 @@ class Node:
 	def assign(self, task):
 		if self.isProcessing():
 			raise Exception("Node Already processing {}".format(self.id))
-		
+
 		if task.pID is not None:
 			raise Exception("Assigning a task which is already assigned T{} {} -> {}".format(task.id, task.pID, self.id))
 
@@ -115,7 +115,7 @@ class Node:
  	processingCost = CPU Usage cost per time unit * executionTime
 	memoryUsageCost = Node memory usage cost * memory required for task
 	bandwidthUsageCost = Node bandwidth usage cost * bandwidth needed by the task
-	
+
 	(Nguyen, B.M. et.al,2019)
 	"""
 	def estimateCost(self, task):
@@ -263,12 +263,12 @@ def PrettyStatsPrint(stats):
 	print("Total")
 	print("  Latency : {}µs".format(stats['total']['latency']))
 	print("  Comput  : {}µs".format(stats['total']['processTime']))
-	print("  Cost    : {}".format(stats['total']['cost']))
-	print("  Time    : {}µs".format(stats['total']['tick']))
 	print("  Idle    : {}µs".format(stats['total']['idle']))
+	print("  Time    : {}µs".format(stats['total']['tick']))
+	print("  Cost    : {}".format(stats['total']['cost']))
 
 	print("Avg")
 	print("  Latency : {} µs/task".format(stats['avg']['latency']))
 	print("  Comput  : {} µs/task".format(stats['avg']['processTime']))
-	print("  Cost    : {} cost/task".format(stats['avg']['cost']))
 	print("  Idle    : {} µs/node".format(stats['avg']['idle']))
+	print("  Cost    : {} 10⁻³/task".format(stats['avg']['cost']))
